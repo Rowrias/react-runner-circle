@@ -4,48 +4,47 @@ import Sidebar from '../components/layout/Sidebar'
 import BottomNavigation from '../components/layout/BottomNavigation'
 import WorkoutCard from '../components/ui/WorkoutCard'
 import FloatingActionButton from '../components/ui/FloatingActionButton'
+import { gql } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
+
+const GET_FEED = gql`
+  query GetFeed {
+    allFeeds {
+      user
+      time
+      stats
+      description
+      workout
+    }
+  }
+`
 
 function Feed({ onNavigateToNewPost, onNavigateToProfile, onLogout }) {
   const [activeItem, setActiveItem] = useState('feed')
   const [workouts, setWorkouts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const { loading, error, data } = useQuery(GET_FEED)
 
   useEffect(() => {
     const fetchWorkouts = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch('http://localhost:3001/feed')
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        const data = await response.json()
-        const normalizedWorkouts = data.map(item => {
-          if (item.workout) {
-            return {
-              id: item.id,
-              ...item.workout
-            }
+      const normalizedWorkouts = data.map(item => {
+        if (item.workout) {
+          return {
+            id: item.id,
+            ...item.workout
           }
-          return item
-        })
-        setWorkouts(normalizedWorkouts)
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching workouts:', err)
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
+        }
+        return item
+      })
+      setWorkouts(normalizedWorkouts)
+    };
 
     fetchWorkouts()
-  }, [])
+  }, [data])
 
   const handleMenuClick = (itemId) => {
     setActiveItem(itemId)
     console.log('Menu clicked:', itemId)
-    
+
     if (itemId === 'profile') {
       onNavigateToProfile?.()
     } else if (itemId === 'logout') {
@@ -56,18 +55,18 @@ function Feed({ onNavigateToNewPost, onNavigateToProfile, onLogout }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="md:flex">
         {/* Desktop Sidebar */}
         <Sidebar activeItem={activeItem} onItemClick={handleMenuClick} />
-        
+
         {/* Main Content */}
         <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6">
           <div className="max-w-7xl mx-auto">
             <h1 className="text-2xl font-bold text-brand-graphite mb-6 hidden md:block">
               Feed de Treinos
             </h1>
-            
+
             {/* Loading State */}
             {loading && (
               <div className="flex justify-center items-center py-8">
@@ -96,7 +95,7 @@ function Feed({ onNavigateToNewPost, onNavigateToProfile, onLogout }) {
 
       {/* Mobile Bottom Navigation */}
       <BottomNavigation activeItem={activeItem} onItemClick={handleMenuClick} />
-      
+
       {/* Floating Action Button */}
       <FloatingActionButton onClick={onNavigateToNewPost} />
     </div>
